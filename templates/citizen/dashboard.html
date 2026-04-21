@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}My Reports{% endblock %}
+{% block content %}
+
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold cs-heading mb-1">
+      <i class="bi bi-person-circle me-2 text-accent"></i>Welcome, {{ current_user.name.split()[0] }}!
+    </h4>
+    <p class="cs-subheading mb-0">Here's a summary of all your reported civic issues.</p>
+  </div>
+  <a href="{{ url_for('citizen.submit') }}" class="cs-btn-primary mt-2 mt-md-0">
+    <i class="bi bi-plus-circle me-2"></i>Report New Issue
+  </a>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  {% set card_data = [
+    ('total',       'Total Submitted', 'bi-inbox-fill',        'accent',   '#'),
+    ('pending',     'Pending',         'bi-clock-fill',        'warning',  '#'),
+    ('in_progress', 'In Progress',     'bi-arrow-repeat',      'info',     '#'),
+    ('resolved',    'Resolved',        'bi-check-circle-fill', 'success',  '#'),
+  ] %}
+  {% for key, label, icon, color, link in card_data %}
+  <div class="col-6 col-lg-3">
+    <div class="cs-stat-card cs-stat-{{ color }}">
+      <div class="stat-icon"><i class="bi {{ icon }}"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ stats[key] }}</div>
+        <div class="stat-label">{{ label }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Complaint History -->
+<div class="cs-card">
+  <div class="cs-card-header d-flex flex-wrap justify-content-between align-items-center">
+    <h6 class="mb-0 fw-semibold cs-heading">
+      <i class="bi bi-table me-2 text-accent"></i>My Complaint History
+    </h6>
+    <input class="cs-input cs-search-input mt-2 mt-md-0" id="searchInput" placeholder="Search by type, location…" style="padding-left:.9rem">
+  </div>
+
+  {% if complaints %}
+  <div class="table-responsive">
+    <table class="cs-table" id="complaintsTable">
+      <thead>
+        <tr>
+          <th>#ID</th><th>Issue Type</th><th>Location</th><th>Submitted</th><th>Status</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in complaints %}
+        <tr>
+          <td class="cs-id-cell">#{{ c.complaint_id }}</td>
+          <td><span class="cs-badge-type"><i class="bi bi-tag me-1"></i>{{ c.issue_type.type_name | replace('_',' ') | title }}</span></td>
+          <td class="cs-location-cell"><i class="bi bi-geo-alt text-accent me-1"></i>{{ c.location[:45] }}{% if c.location|length > 45 %}…{% endif %}</td>
+          <td class="cs-date-cell"><i class="bi bi-calendar3 me-1"></i>{{ c.submitted_at.strftime('%d %b %Y') }}</td>
+          <td>
+            <span class="cs-status cs-status-{{ c.status | lower | replace(' ','-') }}">
+              {% if c.status == 'Pending' %}<i class="bi bi-clock me-1"></i>
+              {% elif c.status == 'In Progress' %}<i class="bi bi-arrow-repeat me-1"></i>
+              {% elif c.status == 'Resolved' %}<i class="bi bi-check-circle me-1"></i>
+              {% else %}<i class="bi bi-x-circle me-1"></i>{% endif %}
+              {{ c.status }}
+            </span>
+          </td>
+          <td>
+            <a href="{{ url_for('citizen.complaint_detail', complaint_id=c.complaint_id) }}" class="cs-btn-icon cs-btn-icon-view" title="View details">
+              <i class="bi bi-eye-fill"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="cs-empty-state">
+    <i class="bi bi-inbox"></i>
+    <h6>No complaints yet</h6>
+    <p>You haven't reported any civic issues yet.</p>
+    <a href="{{ url_for('citizen.submit') }}" class="cs-btn-primary"><i class="bi bi-plus-circle me-2"></i>Report Your First Issue</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('searchInput').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#complaintsTable tbody tr').forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}Complaint #{{ complaint.complaint_id }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <nav class="mb-3">
+      <a href="{{ url_for('citizen.dashboard') }}" class="cs-link" style="font-size:.9rem">
+        <i class="bi bi-arrow-left me-1"></i><span data-cs-key="Back to My Reports">Back to My Reports</span>
+      </a>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-start mb-4">
+      <div>
+        <h4 class="fw-bold cs-heading mb-1">
+          <i class="bi bi-file-earmark-text me-2 text-accent"></i>Complaint #{{ complaint.complaint_id }}
+        </h4>
+        <p class="cs-subheading mb-0">Submitted on {{ complaint.submitted_at.strftime('%d %B %Y at %I:%M %p') }}</p>
+      </div>
+      <span class="cs-status cs-status-{{ complaint.status | lower | replace(' ','-') }} mt-2" style="font-size:.88rem;padding:6px 16px">
+        {% if complaint.status == 'Pending' %}<i class="bi bi-clock me-1"></i>
+        {% elif complaint.status == 'In Progress' %}<i class="bi bi-arrow-repeat me-1"></i>
+        {% elif complaint.status == 'Resolved' %}<i class="bi bi-check-circle me-1"></i>
+        {% else %}<i class="bi bi-x-circle me-1"></i>{% endif %}
+        {{ complaint.status }}
+      </span>
+    </div>
+
+    <div class="row g-4">
+      <!-- Image -->
+      <div class="col-md-5">
+        <div class="cs-card">
+          <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-image me-2 text-accent"></i><span data-cs-key="Photo Evidence">Photo Evidence</span></h6></div>
+          {% if complaint.image_path %}
+            <img src="{{ url_for('static', filename=complaint.image_path) }}" class="img-fluid rounded" style="width:100%;max-height:300px;object-fit:cover;border:1px solid var(--cs-border)">
+          {% else %}
+            <div class="cs-empty-state" style="padding:2rem">
+              <i class="bi bi-image-alt" style="font-size:2.5rem;opacity:.4"></i>
+              <p class="mt-2 mb-0" style="font-size:.85rem">No image provided</p>
+            </div>
+          {% endif %}
+
+          <!-- Likes / Dislikes -->
+          <div class="d-flex gap-3 mt-3 px-1 pb-1">
+            <form method="POST" action="{{ url_for('citizen.react', complaint_id=complaint.complaint_id) }}" style="margin:0">
+              <input type="hidden" name="reaction" value="like">
+              <button type="submit" class="cs-react-btn {% if my_reaction == 'like' %}cs-react-active-like{% endif %}" title="Valid complaint">
+                <i class="bi bi-hand-thumbs-up-fill"></i> <span>{{ likes }}</span>
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('citizen.react', complaint_id=complaint.complaint_id) }}" style="margin:0">
+              <input type="hidden" name="reaction" value="dislike">
+              <button type="submit" class="cs-react-btn {% if my_reaction == 'dislike' %}cs-react-active-dislike{% endif %}" title="Seems false">
+                <i class="bi bi-hand-thumbs-down-fill"></i> <span>{{ dislikes }}</span>
+              </button>
+            </form>
+            <small class="ms-auto align-self-center" style="color:var(--cs-muted);font-size:.75rem;">
+              <i class="bi bi-chat-dots me-1"></i>{{ comments|length }} comment{{ 's' if comments|length != 1 }}
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Details -->
+      <div class="col-md-7">
+        <div class="cs-card h-100">
+          <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-info-circle me-2 text-accent"></i><span data-cs-key="Issue Details">Issue Details</span></h6></div>
+          <div class="cs-detail-field">
+            <div class="cs-detail-label"><i class="bi bi-tag me-1"></i>Issue Type</div>
+            <div class="cs-detail-value"><span class="cs-badge-type">{{ complaint.issue_type.type_name | replace('_',' ') | title }}</span></div>
+          </div>
+          <div class="cs-detail-field">
+            <div class="cs-detail-label"><i class="bi bi-geo-alt me-1"></i><span data-cs-key="Location">Location</span></div>
+            <div class="cs-detail-value">{{ complaint.location }}</div>
+          </div>
+          <div class="cs-detail-field">
+            <div class="cs-detail-label"><i class="bi bi-flag me-1"></i>Priority Level</div>
+            <div class="cs-detail-value">
+              <span class="cs-priority cs-priority-{{ complaint.issue_type.priority_level | lower }}">{{ complaint.issue_type.priority_level }}</span>
+            </div>
+          </div>
+          <div class="cs-detail-field">
+            <div class="cs-detail-label"><i class="bi bi-calendar3 me-1"></i>Submitted</div>
+            <div class="cs-detail-value">{{ complaint.submitted_at.strftime('%d %b %Y, %I:%M %p') }}</div>
+          </div>
+          {% if complaint.resolved_at %}
+          <div class="cs-detail-field">
+            <div class="cs-detail-label"><i class="bi bi-check-circle me-1"></i>Resolved</div>
+            <div class="cs-detail-value" style="color:var(--cs-success)">{{ complaint.resolved_at.strftime('%d %b %Y, %I:%M %p') }}</div>
+          </div>
+          {% endif %}
+          {% if complaint.description %}
+          <div class="cs-detail-field mt-3">
+            <div class="cs-detail-label mb-2"><i class="bi bi-chat-text me-1"></i><span data-cs-key="Description">Description</span></div>
+            <div style="background:rgba(91,142,255,0.05);border:1px solid var(--cs-border);border-radius:var(--cs-radius-sm);padding:.85rem;color:var(--cs-text-soft);font-size:.9rem;line-height:1.6">{{ complaint.description }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="cs-card mt-4">
+      <div class="cs-card-header">
+        <h6 class="mb-0 fw-semibold cs-heading">
+          <i class="bi bi-chat-square-dots me-2 text-accent"></i>
+          <span data-cs-key="Comments">Comments</span>
+          <span class="badge ms-2" style="background:var(--cs-accent-glow);color:var(--cs-accent);font-size:.72rem;">{{ comments|length }}</span>
+        </h6>
+      </div>
+      {% if comments %}
+      <div class="px-1 pt-2 pb-1">
+        {% for c in comments %}
+        <div class="d-flex gap-3 mb-3 align-items-start">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--cs-accent),var(--cs-accent-2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem;flex-shrink:0;">
+            {{ c.user.name[0].upper() }}
+          </div>
+          <div style="flex:1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span style="font-weight:700;font-size:.88rem;color:var(--cs-text);">{{ c.user.name }}</span>
+              {% if c.user_id == complaint.user_id %}
+              <span style="font-size:.68rem;background:rgba(37,99,235,0.1);color:var(--cs-accent);border-radius:8px;padding:1px 7px;font-weight:600;">Reporter</span>
+              {% endif %}
+              <small style="color:var(--cs-muted);font-size:.75rem;margin-left:auto;">{{ c.created_at.strftime('%d %b, %I:%M %p') }}</small>
+            </div>
+            <div style="background:var(--cs-surface);border:1px solid var(--cs-border);border-radius:var(--cs-radius-sm);padding:.6rem .85rem;font-size:.88rem;color:var(--cs-text-soft);line-height:1.55;">{{ c.body }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:1.5rem;color:var(--cs-muted);font-size:.88rem;">
+        <i class="bi bi-chat-dots" style="font-size:1.8rem;opacity:.4;display:block;margin-bottom:.5rem;"></i>
+        No comments yet. Be the first to comment!
+      </div>
+      {% endif %}
+      <div style="border-top:1px solid var(--cs-border);padding:1rem 0 0;">
+        <form method="POST" action="{{ url_for('citizen.add_comment', complaint_id=complaint.complaint_id) }}">
+          <div class="d-flex gap-2 align-items-end">
+            <textarea name="body" class="cs-input cs-textarea" rows="2"
+                      placeholder="Add a comment…" data-cs-ph="Add a comment…"
+                      maxlength="500" style="flex:1;resize:none;" required></textarea>
+            <button type="submit" class="cs-btn-primary" style="padding:.5rem 1.1rem;white-space:nowrap;">
+              <i class="bi bi-send me-1"></i><span data-cs-key="Post Comment">Post Comment</span>
+            </button>
+          </div>
+          <small style="color:var(--cs-muted);font-size:.72rem;margin-top:4px;display:block;">
+            <i class="bi bi-info-circle me-1"></i>Comments are public — use them to verify or flag false complaints
+          </small>
+        </form>
+      </div>
+    </div>
+
+    {% if complaint.status_history %}
+    <div class="cs-card mt-4">
+      <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-clock-history me-2 text-accent"></i><span data-cs-key="Status History">Status History</span></h6></div>
+      <div class="cs-timeline">
+        {% for log in complaint.status_history | sort(attribute='changed_at', reverse=True) %}
+        <div class="cs-tl-item">
+          <div class="cs-tl-dot"><i class="bi bi-check2"></i></div>
+          <div class="cs-tl-body">
+            <div class="d-flex justify-content-between flex-wrap gap-1 align-items-center">
+              <span class="cs-tl-title">
+                {% if log.old_status %}<span style="color:var(--cs-muted)">{{ log.old_status }}</span> <i class="bi bi-arrow-right mx-1" style="color:var(--cs-subtle)"></i>{% endif %}
+                <span class="cs-status cs-status-{{ log.new_status | lower | replace(' ','-') }}" style="font-size:.75rem;padding:3px 10px">{{ log.new_status }}</span>
+              </span>
+              <small class="cs-tl-meta">{{ log.changed_at.strftime('%d %b %Y, %I:%M %p') }}</small>
+            </div>
+            {% if log.remarks %}<div class="cs-tl-remark">{{ log.remarks }}</div>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.cs-react-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid var(--cs-border);background:var(--cs-surface);color:var(--cs-muted);font-size:.88rem;font-weight:600;cursor:pointer;transition:all .18s;}
+.cs-react-btn:hover{border-color:var(--cs-accent);color:var(--cs-accent);background:var(--cs-accent-glow);}
+.cs-react-active-like{border-color:var(--cs-success)!important;color:var(--cs-success)!important;background:rgba(5,150,105,0.08)!important;}
+.cs-react-active-dislike{border-color:var(--cs-danger)!important;color:var(--cs-danger)!important;background:rgba(220,38,38,0.07)!important;}
+</style>
+{% endblock %}

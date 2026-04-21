@@ -1,0 +1,394 @@
+{% extends 'base.html' %}
+{% block title %}Report an Issue{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10 col-xl-9">
+
+    <div class="page-header mb-4">
+      <h4 class="fw-bold cs-heading mb-1">
+        <i class="bi bi-camera-fill me-2 text-accent"></i>Report a Civic Issue
+      </h4>
+      <p class="cs-subheading mb-0">Upload a photo — <strong style="color:var(--cs-accent)">AI</strong> will auto-detect the issue type instantly.</p>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="submitForm">
+      <div class="row g-4">
+
+        <!-- LEFT: Image upload + AI result -->
+        <div class="col-md-5">
+          <div class="cs-card h-100">
+            <div class="cs-card-header d-flex justify-content-between align-items-center">
+              <h6 class="mb-0 fw-semibold cs-heading">
+                <i class="bi bi-image me-2 text-accent"></i>Upload Photo
+              </h6>
+              <span id="aiBadge" class="ai-badge ai-idle">
+                <span class="ai-dot"></span><span id="aiBadgeText">AI</span>
+              </span>
+            </div>
+
+            <!-- Drop zone -->
+            <div id="dropZone" class="cs-dropzone mb-3">
+              <div class="dropzone-icon"><i class="bi bi-cloud-upload"></i></div>
+              <p class="drop-text mb-1">Drag &amp; drop your image here</p>
+              <span class="drop-hint">or click to browse</span>
+              <span class="drop-hint mt-1">JPG / PNG · max 5 MB</span>
+              <input type="file" name="image" id="imageInput" accept=".jpg,.jpeg,.png" class="d-none">
+            </div>
+
+            <!-- Preview -->
+            <img id="imagePreview" src="#" alt="Preview"
+                 class="img-fluid rounded d-none mb-3"
+                 style="max-height:200px;object-fit:cover;width:100%;border:2px solid var(--cs-border)">
+
+            <!-- AI analysing -->
+            <div id="aiLoading" class="ai-loading d-none">
+              <div class="ai-spinner"></div>
+              <div>
+                <div style="font-weight:700;font-size:.82rem">AI is analysing…</div>
+                <div style="font-size:.75rem;color:var(--cs-muted);margin-top:1px">Reading image for civic issues</div>
+              </div>
+            </div>
+
+            <!-- AI result card -->
+            <div id="aiResult" class="ai-result-card d-none">
+              <div class="ai-result-header">
+                <i class="bi bi-stars me-1"></i> AI Detected
+              </div>
+              <div class="ai-result-body">
+                <div class="ai-detected-label" id="aiDetectedLabel">—</div>
+                <div class="ai-conf-bar-wrap">
+                  <div class="ai-conf-bar" id="aiConfBar" style="width:0%"></div>
+                </div>
+                <div class="ai-conf-text" id="aiConfText"></div>
+                <div class="ai-reason" id="aiReason"></div>
+              </div>
+              <div class="ai-result-footer">
+                <i class="bi bi-info-circle me-1"></i>Auto-selected below — edit if needed
+              </div>
+            </div>
+
+            <!-- Error card -->
+            <div id="aiError" class="ai-error-card d-none">
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              <span id="aiErrorMsg">AI unavailable — please select manually</span>
+            </div>
+
+            <p class="cs-optional-note mt-2 mb-0">
+              <i class="" style="color:var(--cs-accent)"></i>
+              
+            </p>
+          </div>
+        </div>
+
+        <!-- RIGHT: Form fields -->
+        <div class="col-md-7">
+          <div class="cs-card h-100">
+            <div class="cs-card-header">
+              <h6 class="mb-0 fw-semibold cs-heading">
+                <i class="bi bi-pencil-square me-2 text-accent"></i>Issue Details
+              </h6>
+            </div>
+
+            <!-- AI auto-selected note -->
+            <div id="aiAutoNote" class="ai-auto-note d-none mb-3">
+              <i class="bi bi-magic me-1"></i>
+              AI selected: <strong id="aiAutoLabel"></strong>
+              <span id="aiAutoConf" class="ai-conf-badge"></span>
+              <button type="button" class="ai-clear-btn" onclick="clearAi()">
+                <i class="bi bi-x"></i> Clear
+              </button>
+            </div>
+
+            <div class="cs-form-group mb-3">
+              <label class="cs-label">Issue Category <span class="cs-required">*</span></label>
+              <div class="cs-input-wrap">
+                <i class="bi bi-tag cs-input-icon"></i>
+                <select name="type_id" id="typeSelect" class="cs-input cs-select" required>
+                  <option value="">— Select issue type —</option>
+                  {% for t in issue_types %}
+                  <option value="{{ t.type_id }}" data-name="{{ t.type_name }}">
+                    {{ t.type_name | replace('_',' ') | title }} · {{ t.priority_level }} priority
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="cs-form-group mb-3">
+              <label class="cs-label">Location / Address <span class="cs-required">*</span></label>
+              <div class="cs-input-wrap">
+                <i class="bi bi-geo-alt cs-input-icon"></i>
+                <input type="text" name="location" id="locationInput" class="cs-input"
+                       style="padding-right:3rem" placeholder="e.g. MG Road near Bus Stop, Pune" required>
+                <button type="button" class="cs-gps-btn" id="gpsBtn" title="Auto-detect GPS">
+                  <i class="bi bi-geo-alt-fill"></i>
+                </button>
+              </div>
+              <small class="cs-hint"><i class="bi bi-cursor me-1"></i>Click GPS icon to auto-detect location</small>
+            </div>
+
+            <div class="cs-form-group mb-3">
+              <label class="cs-label" for="descriptionInput">Description <span class="cs-optional">(optional)</span></label>
+              <textarea name="description" id="descriptionInput" class="cs-input cs-textarea" rows="3"
+                        placeholder="Describe severity, how long it's been there, any safety concerns…"></textarea>
+              <!-- ♿ Voice Input Button -->
+              <button type="button" id="voiceBtn" onclick="csVoice.start()"
+                aria-label="Use voice to fill description"
+                title="Click and speak to fill description"
+                style="margin-top:6px;padding:4px 14px;cursor:pointer;border-radius:6px;
+                       border:1px solid var(--cs-border);background:var(--cs-surface);
+                       color:var(--cs-text-soft);font-size:0.82rem;display:inline-flex;
+                       align-items:center;gap:6px;">
+                🎤 <span id="voiceBtnText">Speak Instead</span>
+              </button>
+              <small class="cs-hint d-block mt-1"><i class="bi bi-mic me-1"></i>Works on Chrome — click and speak your description</small>
+              <!-- ♿ End Voice Input -->
+            </div>
+
+            <div class="cs-chips mb-4">
+              <small class="cs-label mb-2 d-block">Quick select:</small>
+              <div class="d-flex flex-wrap gap-2">
+                {% for t in issue_types %}
+                <button type="button" class="cs-chip" data-val="{{ t.type_id }}"
+                        onclick="manualSelect({{ t.type_id }}, '{{ t.type_name }}', this)">
+                  {% if t.type_name == 'pothole' %}<i class="bi bi-exclamation-triangle me-1"></i>
+                  {% elif t.type_name == 'garbage' %}<i class="bi bi-trash me-1"></i>
+                  {% elif t.type_name == 'water_leakage' %}<i class="bi bi-droplet me-1"></i>
+                  {% elif t.type_name == 'streetlight' %}<i class="bi bi-lightbulb me-1"></i>
+                  {% elif t.type_name == 'sewage' %}<i class="bi bi-water me-1"></i>
+                  {% elif t.type_name == 'electricity' %}<i class="bi bi-lightning me-1"></i>
+                  {% elif t.type_name == 'tree_fall' %}<i class="bi bi-tree me-1"></i>
+                  {% else %}<i class="bi bi-three-dots me-1"></i>{% endif %}
+                  {{ t.type_name | replace('_',' ') | title }}
+                  {% if count_map.get(t.type_id, 0) > 0 %}
+                  <span style="margin-left:4px;background:rgba(37,99,235,0.15);color:var(--cs-accent);
+                               border-radius:10px;padding:0 6px;font-size:.7rem;font-weight:700;"
+                        title="{{ count_map.get(t.type_id, 0) }} people reported this">
+                    {{ count_map.get(t.type_id, 0) }}
+                  </span>
+                  {% endif %}
+                </button>
+                {% endfor %}
+              </div>
+            </div>
+
+            <button type="submit" class="cs-btn-primary w-100" id="submitBtn" style="padding:.65rem">
+              <i class="bi bi-send me-2"></i>Submit Complaint
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* ── AI badge ── */
+.ai-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;transition:all .3s}
+.ai-idle   {background:rgba(91,142,255,0.1);color:var(--cs-accent);border:1px solid rgba(91,142,255,0.25)}
+.ai-busy   {background:rgba(56,189,248,0.12);color:var(--cs-info);border:1px solid rgba(56,189,248,0.3)}
+.ai-done   {background:rgba(52,211,153,0.12);color:var(--cs-success);border:1px solid rgba(52,211,153,0.3)}
+.ai-fail   {background:rgba(248,113,113,0.12);color:var(--cs-danger);border:1px solid rgba(248,113,113,0.3)}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.ai-busy .ai-dot{animation:blink 1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+
+/* ── AI loading ── */
+.ai-loading{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.2);border-radius:10px;margin-bottom:.75rem;color:var(--cs-info)}
+.ai-spinner{width:22px;height:22px;border:2.5px solid rgba(56,189,248,0.25);border-top-color:var(--cs-info);border-radius:50%;animation:spin .75s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── AI result card ── */
+.ai-result-card{border:1px solid rgba(91,142,255,0.25);border-radius:10px;overflow:hidden;margin-bottom:.75rem}
+.ai-result-header{background:rgba(91,142,255,0.12);padding:7px 12px;font-size:.75rem;font-weight:700;color:var(--cs-accent);letter-spacing:.3px}
+.ai-result-body{padding:12px 14px}
+.ai-detected-label{font-size:1.05rem;font-weight:800;color:var(--cs-text);margin-bottom:8px;text-transform:capitalize}
+.ai-conf-bar-wrap{height:6px;background:rgba(255,255,255,0.07);border-radius:3px;margin-bottom:5px}
+.ai-conf-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cs-accent),var(--cs-accent-2));transition:width .7s ease}
+.ai-conf-text{font-size:.75rem;font-weight:700;color:var(--cs-accent);margin-bottom:6px}
+.ai-reason{font-size:.8rem;color:var(--cs-text-soft);font-style:italic;padding:6px 10px;background:rgba(255,255,255,0.03);border-left:3px solid rgba(91,142,255,0.3);border-radius:0 5px 5px 0}
+.ai-result-footer{padding:6px 12px 8px;font-size:.72rem;color:var(--cs-muted)}
+
+/* ── AI error ── */
+.ai-error-card{display:flex;align-items:center;gap:6px;padding:9px 12px;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);border-radius:8px;color:var(--cs-danger);font-size:.82rem;margin-bottom:.75rem}
+
+/* ── Auto-note ── */
+.ai-auto-note{display:flex;align-items:center;flex-wrap:wrap;gap:6px;background:rgba(52,211,153,0.07);border:1px solid rgba(52,211,153,0.22);border-radius:8px;padding:8px 12px;font-size:.82rem;color:var(--cs-success-text)}
+.ai-auto-note strong{color:var(--cs-text)}
+.ai-conf-badge{background:rgba(52,211,153,0.15);color:var(--cs-success);border-radius:4px;padding:1px 7px;font-size:.72rem;font-weight:700}
+.ai-clear-btn{margin-left:auto;background:none;border:1px solid rgba(248,113,113,0.3);color:var(--cs-danger);border-radius:5px;font-size:.72rem;padding:2px 8px;cursor:pointer;transition:all .2s}
+.ai-clear-btn:hover{background:var(--cs-danger-bg)}
+</style>
+
+<script>
+/* ── Classify via our Flask endpoint (calls Claude vision server-side) ── */
+async function classifyWithClaude(base64Data, mimeType) {
+  setBadge('busy', 'Analysing…');
+  document.getElementById('aiLoading').classList.remove('d-none');
+  document.getElementById('aiResult').classList.add('d-none');
+  document.getElementById('aiError').classList.add('d-none');
+
+  try {
+    // Strip the "data:image/...;base64," prefix if present
+    const b64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+
+    const resp = await fetch('/api/ai-classify', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ image_b64: b64, media_type: mimeType })
+    });
+
+    const data = await resp.json();
+    document.getElementById('aiLoading').classList.add('d-none');
+
+    if (!resp.ok || data.error) {
+      showError(data.error || 'Classification failed');
+      return;
+    }
+
+    showResult(data);
+
+  } catch(e) {
+    document.getElementById('aiLoading').classList.add('d-none');
+    showError('Network error — select manually');
+  }
+}
+
+function showResult(data) {
+  const pct    = Math.round((data.confidence || 0) * 100);
+  const label  = (data.category || 'other').replace(/_/g, ' ');
+
+  document.getElementById('aiDetectedLabel').textContent = label.replace(/\b\w/g,c=>c.toUpperCase());
+  document.getElementById('aiConfBar').style.width = pct + '%';
+  document.getElementById('aiConfText').textContent = pct + '% confident';
+  document.getElementById('aiReason').textContent = data.reason || '';
+  document.getElementById('aiResult').classList.remove('d-none');
+
+  setBadge('done', pct + '% confident');
+
+  if (data.type_id && data.confidence >= 0.55) {
+    applySelection(data.type_id, label, pct);
+  }
+}
+
+function applySelection(typeId, label, pct) {
+  const sel = document.getElementById('typeSelect');
+  sel.value = typeId;
+  document.querySelectorAll('.cs-chip').forEach(c => {
+    c.classList.toggle('cs-chip-active', parseInt(c.dataset.val) === parseInt(typeId));
+  });
+  document.getElementById('aiAutoLabel').textContent =
+    label.replace(/\b\w/g, c => c.toUpperCase());
+  document.getElementById('aiAutoConf').textContent = pct + '% confident';
+  document.getElementById('aiAutoNote').classList.remove('d-none');
+}
+
+function showError(msg) {
+  document.getElementById('aiErrorMsg').textContent = msg;
+  document.getElementById('aiError').classList.remove('d-none');
+  setBadge('fail', 'Unavailable');
+}
+
+function clearAi() {
+  document.getElementById('typeSelect').value = '';
+  document.querySelectorAll('.cs-chip').forEach(c => c.classList.remove('cs-chip-active'));
+  document.getElementById('aiAutoNote').classList.add('d-none');
+}
+
+function manualSelect(val, name, el) {
+  document.getElementById('typeSelect').value = val;
+  document.querySelectorAll('.cs-chip').forEach(c => c.classList.remove('cs-chip-active'));
+  el.classList.add('cs-chip-active');
+  document.getElementById('aiAutoNote').classList.add('d-none');
+}
+
+function setBadge(state, text) {
+  const b = document.getElementById('aiBadge');
+  b.className = 'ai-badge ai-' + state;
+  document.getElementById('aiBadgeText').textContent = text;
+}
+
+/* ── Dropzone / file handling ── */
+const dropZone   = document.getElementById('dropZone');
+const imageInput = document.getElementById('imageInput');
+const preview    = document.getElementById('imagePreview');
+
+dropZone.addEventListener('click', () => imageInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('cs-dropzone-hover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('cs-dropzone-hover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('cs-dropzone-hover');
+  if (e.dataTransfer.files.length) { imageInput.files = e.dataTransfer.files; handleFile(e.dataTransfer.files[0]); }
+});
+imageInput.addEventListener('change', () => { if (imageInput.files.length) handleFile(imageInput.files[0]); });
+
+function handleFile(file) {
+  if (!['image/jpeg','image/png'].includes(file.type)) { alert('Only JPG and PNG allowed.'); return; }
+  if (file.size > 5*1024*1024) { alert('File exceeds 5 MB.'); return; }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    preview.src = e.target.result;
+    preview.classList.remove('d-none');
+    dropZone.style.display = 'none';
+    // Send to Claude
+    classifyWithClaude(e.target.result, file.type);
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── GPS ── */
+document.getElementById('gpsBtn').addEventListener('click', () => {
+  if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
+  const btn = document.getElementById('gpsBtn');
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+  navigator.geolocation.getCurrentPosition(pos => {
+    const {latitude, longitude} = pos.coords;
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+      .then(r => r.json())
+      .then(d => { document.getElementById('locationInput').value = d.display_name || `${latitude.toFixed(5)},${longitude.toFixed(5)}`; btn.innerHTML = '<i class="bi bi-check-lg"></i>'; })
+      .catch(()  => { document.getElementById('locationInput').value = `${latitude.toFixed(5)},${longitude.toFixed(5)}`; btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i>'; });
+  }, () => { alert('Location access denied.'); btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i>'; });
+});
+
+/* ── Submit ── */
+document.getElementById('submitForm').addEventListener('submit', function() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting…';
+});
+
+/* ── ♿ Voice Input ── */
+const csVoice = {
+  start() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice input requires Chrome browser. Please type manually.');
+      return;
+    }
+    const r = new SpeechRecognition();
+    r.lang = 'en-IN';
+    r.interimResults = false;
+    r.start();
+    document.getElementById('voiceBtnText').textContent = '🔴 Listening…';
+    document.getElementById('voiceBtn').disabled = true;
+    r.onresult = (e) => {
+      document.getElementById('descriptionInput').value = e.results[0][0].transcript;
+      document.getElementById('voiceBtnText').textContent = '✅ Done';
+      document.getElementById('voiceBtn').disabled = false;
+      setTimeout(() => { document.getElementById('voiceBtnText').textContent = 'Speak Instead'; }, 2000);
+    };
+    r.onerror = () => {
+      document.getElementById('voiceBtnText').textContent = 'Speak Instead';
+      document.getElementById('voiceBtn').disabled = false;
+    };
+    r.onend = () => { document.getElementById('voiceBtn').disabled = false; };
+  }
+};
+/* ── ♿ End Voice Input ── */
+</script>
+{% endblock %}

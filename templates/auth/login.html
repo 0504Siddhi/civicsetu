@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-wrapper">
+
+    <!-- Hero side -->
+    <div class="auth-hero d-none d-md-flex flex-column justify-content-between">
+      <div>
+        <div class="hero-logo mb-4">
+          <img src="/static/images/logo.jpg" alt="Brand Logo" class="img-fluid mb-3" style="max-height: 60px;">
+          <p class="hero-sub">Your Bridge to Better Governance</p>
+        </div>
+        <div class="hero-features mt-4">
+          <div class="hero-feature">
+            <i class="bi bi-camera-fill"></i>
+            <div><div class="feat-title">Photo Evidence</div><div class="feat-desc">Upload images of civic issues</div></div>
+          </div>
+          <div class="hero-feature">
+            <i class="bi bi-geo-alt-fill"></i>
+            <div><div class="feat-title">Location Tracking</div><div class="feat-desc">GPS-based issue reporting</div></div>
+          </div>
+          <div class="hero-feature">
+            <i class="bi bi-bell-fill"></i>
+            <div><div class="feat-title">Live Status</div><div class="feat-desc">Track resolution in real-time</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-stat-row">
+        <div class="hero-stat"><span>Fast</span><small>Resolution</small></div>
+        <div class="hero-stat-div"></div>
+        <div class="hero-stat"><span>Secure</span><small>Data</small></div>
+        <div class="hero-stat-div"></div>
+        <div class="hero-stat"><span>Smart</span><small>Tracking</small></div>
+      </div>
+    </div>
+
+    <!-- Login card -->
+    <div class="auth-card">
+      <div class="text-center mb-4">
+        <div class="brand-icon brand-icon-md d-md-none mx-auto mb-3"><i class="bi bi-building-check"></i></div>
+        <h4 class="fw-bold cs-heading">Welcome Back</h4>
+        <p class="cs-subheading mb-0">Sign in to your CivicSetu account</p>
+      </div>
+
+      <form method="POST">
+        <div class="role-toggle mb-4">
+          <input type="radio" class="btn-check" name="role" id="roleC" value="citizen" checked>
+          <label class="role-btn" for="roleC"><i class="bi bi-person-fill me-1"></i>Citizen</label>
+          <input type="radio" class="btn-check" name="role" id="roleA" value="admin">
+          <label class="role-btn" for="roleA"><i class="bi bi-shield-lock-fill me-1"></i>Admin</label>
+        </div>
+
+        <div class="cs-form-group mb-3">
+          <label class="cs-label">Email Address</label>
+          <div class="cs-input-wrap">
+            <i class="bi bi-envelope cs-input-icon"></i>
+            <input type="email" name="email" class="cs-input" placeholder="you@example.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="cs-form-group mb-4">
+          <label class="cs-label d-flex justify-content-between align-items-center">
+            Password <a href="#" class="cs-link-subtle">Forgot password?</a>
+          </label>
+          <div class="cs-input-wrap">
+            <i class="bi bi-lock cs-input-icon"></i>
+            <input type="password" name="password" id="passwordField" class="cs-input" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" class="cs-eye-btn" onclick="togglePass('passwordField','eyeIcon')">
+              <i class="bi bi-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="cs-btn-primary w-100 mb-3" style="padding:.65rem">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+        </button>
+
+        <div class="text-center">
+          <small class="cs-subheading">
+            Don't have an account?
+            <a href="{{ url_for('auth.register') }}" class="cs-link fw-semibold">Register here</a>
+          </small>
+        </div>
+      </form>
+
+      <div class="auth-hint mt-4">
+        <i class="bi bi-info-circle me-2"></i>
+        Demo admin: <strong>admin@civicsetu.in</strong> / <strong>admin123</strong>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePass(fid, iid) {
+  const f = document.getElementById(fid), i = document.getElementById(iid);
+  f.type = f.type === 'password' ? 'text' : 'password';
+  i.className = f.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+</script>
+{% endblock %}

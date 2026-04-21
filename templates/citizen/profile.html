@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% block title %}{{ current_user.name.split()[0] }}{% endblock %}
+{% block content %}
+
+
+
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+
+    <!-- ── Hero Card ── -->
+    <div class="cs-card mb-4" style="background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 50%,#0891b2 100%);border:none;padding:2rem;">
+      <div class="d-flex flex-wrap align-items-center gap-4">
+
+        <!-- Avatar -->
+        <div style="position:relative;flex-shrink:0;">
+          <div id="profileAvatar" style="width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,0.2);
+               border:3px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;
+               font-size:2.4rem;font-weight:800;color:#fff;cursor:pointer;transition:all .2s;"
+               title="Click to change avatar color">
+            {{ current_user.name[0].upper() }}
+          </div>
+          <div style="position:absolute;bottom:2px;right:2px;width:20px;height:20px;background:#22c55e;
+               border-radius:50%;border:2px solid #fff;" title="Online"></div>
+        </div>
+
+        <!-- Name + email + member since -->
+        <div style="flex:1;min-width:180px;">
+          <h4 class="fw-bold mb-0" style="color:#fff;">{{ current_user.name }}</h4>
+          <div style="color:rgba(255,255,255,0.75);font-size:.88rem;">{{ current_user.email }}</div>
+          {% if current_user.phone %}
+          <div style="color:rgba(255,255,255,0.65);font-size:.82rem;margin-top:2px;">
+            <i class="bi bi-phone me-1"></i>{{ current_user.phone }}
+          </div>
+          {% endif %}
+          <div style="color:rgba(255,255,255,0.55);font-size:.75rem;margin-top:4px;">
+            <i class="bi bi-calendar3 me-1"></i>Member since {{ current_user.created_at.strftime('%B %Y') }}
+          </div>
+        </div>
+
+        <!-- Honor Score circle -->
+        <div class="text-center" style="flex-shrink:0;">
+          <div style="position:relative;width:90px;height:90px;margin:0 auto;">
+            <svg width="90" height="90" style="transform:rotate(-90deg);">
+              <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="7"/>
+              <circle cx="45" cy="45" r="38" fill="none" stroke="#facc15" stroke-width="7"
+                stroke-dasharray="{{ (honor_score / 1000 * 238.76)|int }} 238.76"
+                stroke-linecap="round"/>
+            </svg>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+              <div style="font-size:1.1rem;font-weight:800;color:#facc15;line-height:1;">{{ honor_score }}</div>
+              <div style="font-size:.6rem;color:rgba(255,255,255,0.7);line-height:1.2;">HONOR</div>
+            </div>
+          </div>
+          <div style="color:rgba(255,255,255,0.7);font-size:.7rem;margin-top:4px;">out of 1000</div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="d-flex gap-3 flex-wrap" style="flex-shrink:0;">
+          {% for label, val, color in [
+              ('Reported', stats.total, '#60a5fa'),
+              ('Resolved', stats.resolved, '#4ade80'),
+              ('Pending',  stats.pending,  '#fbbf24')] %}
+          <div class="text-center" style="min-width:56px;">
+            <div style="font-size:1.5rem;font-weight:800;color:{{ color }};">{{ val }}</div>
+            <div style="font-size:.7rem;color:rgba(255,255,255,0.65);">{{ label }}</div>
+          </div>
+          {% endfor %}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Badges ── -->
+    <div class="cs-card mb-4">
+      <div class="cs-card-header">
+        <h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-award-fill me-2 text-accent"></i>Badges Earned</h6>
+      </div>
+      {% if badges %}
+      <div class="d-flex flex-wrap gap-3 p-2">
+        {% for b in badges %}
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;
+             border-radius:var(--cs-radius-sm);border:1.5px solid var(--cs-border);
+             background:var(--cs-surface);min-width:180px;">
+          <span style="font-size:1.6rem;">{{ b.icon }}</span>
+          <div>
+            <div style="font-weight:700;font-size:.88rem;color:var(--cs-text);">{{ b.name }}</div>
+            <div style="font-size:.75rem;color:var(--cs-muted);">{{ b.desc }}</div>
+          </div>
+        </div>
+        {% endfor %}
+        <!-- Locked badges -->
+        {% if stats.total < 1 %}
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--cs-radius-sm);border:1.5px dashed var(--cs-border);opacity:.5;min-width:180px;">
+          <span style="font-size:1.6rem;">🔒</span>
+          <div><div style="font-weight:700;font-size:.88rem;">Civic Hero</div><div style="font-size:.75rem;color:var(--cs-muted);">Report your first issue</div></div>
+        </div>
+        {% endif %}
+        {% if stats.resolved < 3 %}
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--cs-radius-sm);border:1.5px dashed var(--cs-border);opacity:.5;min-width:180px;">
+          <span style="font-size:1.6rem;">🔒</span>
+          <div><div style="font-weight:700;font-size:.88rem;">Area Guardian</div><div style="font-size:.75rem;color:var(--cs-muted);">Get 3 complaints resolved</div></div>
+        </div>
+        {% endif %}
+        {% if stats.total < 5 %}
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--cs-radius-sm);border:1.5px dashed var(--cs-border);opacity:.5;min-width:180px;">
+          <span style="font-size:1.6rem;">🔒</span>
+          <div><div style="font-weight:700;font-size:.88rem;">Top Contributor</div><div style="font-size:.75rem;color:var(--cs-muted);">Report 5 issues</div></div>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:1.5rem;color:var(--cs-muted);font-size:.88rem;">
+        <i class="bi bi-award" style="font-size:2rem;opacity:.4;display:block;margin-bottom:.5rem;"></i>
+        No badges yet — start reporting issues to earn them!
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="row g-4">
+
+      <!-- LEFT col -->
+      <div class="col-md-5">
+
+        <!-- Language -->
+        <div class="cs-card mb-4">
+          <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-translate me-2 text-accent"></i>🌐 Language</h6></div>
+          <form method="POST">
+            <input type="hidden" name="action" value="set_language">
+            <div class="d-flex flex-column gap-2 py-2 px-1">
+              {% for code, flag, label in [('en','🇬🇧','English'), ('hi','🇮🇳','हिंदी (Hindi)'), ('mr','🟠','मराठी (Marathi)')] %}
+              <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--cs-radius-sm);
+                     border:1.5px solid {% if current_lang==code %}var(--cs-accent){% else %}var(--cs-border){% endif %};
+                     background:{% if current_lang==code %}var(--cs-accent-glow){% else %}transparent{% endif %};
+                     cursor:pointer;transition:all .15s;">
+                <input type="radio" name="language" value="{{ code }}" {% if current_lang==code %}checked{% endif %}
+                       style="accent-color:var(--cs-accent);" onchange="this.form.submit()">
+                <span style="font-size:1.1rem;">{{ flag }}</span>
+                <span style="font-weight:{% if current_lang==code %}700{% else %}500{% endif %};
+                       color:{% if current_lang==code %}var(--cs-accent){% else %}var(--cs-text){% endif %};">{{ label }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </form>
+        </div>
+
+        <!-- Dark mode -->
+        <div class="cs-card">
+          <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-moon-stars me-2 text-accent"></i>Display</h6></div>
+          <div class="d-flex align-items-center justify-content-between p-3">
+            <div>
+              <div style="font-weight:600;font-size:.9rem;color:var(--cs-text);">Dark Mode</div>
+              <div style="font-size:.75rem;color:var(--cs-muted);">Toggle dark/light theme</div>
+            </div>
+            <div class="cs-toggle-wrap">
+              <input type="checkbox" id="darkModeToggle" class="cs-toggle-input"
+                     onchange="csDark.toggle(this.checked)">
+              <label for="darkModeToggle" class="cs-toggle-label"></label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT col -->
+      <div class="col-md-7">
+
+        <!-- Edit profile -->
+        <div class="cs-card mb-4">
+          <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-pencil-square me-2 text-accent"></i>Edit Profile</h6></div>
+          <form method="POST">
+            <input type="hidden" name="action" value="update_profile">
+            <div class="cs-form-group mb-3">
+              <label class="cs-label">Full Name</label>
+              <div class="cs-input-wrap">
+                <i class="bi bi-person cs-input-icon"></i>
+                <input type="text" name="name" class="cs-input" value="{{ current_user.name }}" required>
+              </div>
+            </div>
+            <div class="cs-form-group mb-3">
+              <label class="cs-label">Email <span class="cs-optional">(cannot change)</span></label>
+              <div class="cs-input-wrap">
+                <i class="bi bi-envelope cs-input-icon"></i>
+                <input type="email" class="cs-input" value="{{ current_user.email }}" disabled style="opacity:.55;">
+              </div>
+            </div>
+            <div class="cs-form-group mb-3">
+              <label class="cs-label">Mobile <span class="cs-optional">(optional)</span></label>
+              <div class="cs-input-wrap">
+                <i class="bi bi-phone cs-input-icon"></i>
+                <input type="tel" name="phone" class="cs-input" value="{{ current_user.phone or '' }}" placeholder="+91 98765 43210">
+              </div>
+            </div>
+            <button type="submit" class="cs-btn-primary" style="padding:.5rem 1.5rem;">
+              <i class="bi bi-save me-1"></i>Save Changes
+            </button>
+          </form>
+        </div>
+
+        <!-- Change password -->
+        <div class="cs-card">
+          <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-lock me-2 text-accent"></i>Change Password</h6></div>
+          <form method="POST">
+            <input type="hidden" name="action" value="change_password">
+            <div class="cs-form-group mb-3">
+              <label class="cs-label">Current Password</label>
+              <div class="cs-input-wrap">
+                <i class="bi bi-lock cs-input-icon"></i>
+                <input type="password" name="old_password" id="op" class="cs-input" placeholder="Current password" required>
+                <button type="button" class="cs-eye-btn" onclick="tp('op','e1')"><i class="bi bi-eye" id="e1"></i></button>
+              </div>
+            </div>
+            <div class="cs-form-group mb-3">
+              <label class="cs-label">New Password</label>
+              <div class="cs-input-wrap">
+                <i class="bi bi-lock-fill cs-input-icon"></i>
+                <input type="password" name="new_password" id="np" class="cs-input" placeholder="Min. 6 characters" required minlength="6">
+                <button type="button" class="cs-eye-btn" onclick="tp('np','e2')"><i class="bi bi-eye" id="e2"></i></button>
+              </div>
+            </div>
+            <div class="cs-form-group mb-4">
+              <label class="cs-label">Confirm New Password</label>
+              <div class="cs-input-wrap">
+                <i class="bi bi-lock-fill cs-input-icon"></i>
+                <input type="password" name="confirm_password" id="cp" class="cs-input" placeholder="Repeat new password" required>
+                <button type="button" class="cs-eye-btn" onclick="tp('cp','e3')"><i class="bi bi-eye" id="e3"></i></button>
+              </div>
+            </div>
+            <button type="submit" class="cs-btn-primary" style="padding:.5rem 1.5rem;">
+              <i class="bi bi-shield-lock me-1"></i>Change Password
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* Toggle switch */
+.cs-toggle-wrap { position:relative; }
+.cs-toggle-input { display:none; }
+.cs-toggle-label {
+  display:block; width:48px; height:26px; border-radius:13px;
+  background:var(--cs-border); cursor:pointer; transition:background .25s;
+  position:relative;
+}
+.cs-toggle-label::after {
+  content:''; position:absolute; top:3px; left:3px;
+  width:20px; height:20px; border-radius:50%; background:#fff;
+  transition:transform .25s; box-shadow:0 1px 4px rgba(0,0,0,0.2);
+}
+.cs-toggle-input:checked + .cs-toggle-label { background:var(--cs-accent); }
+.cs-toggle-input:checked + .cs-toggle-label::after { transform:translateX(22px); }
+
+/* Dark mode styles */
+body.cs-dark {
+  --cs-bg:#0f172a; --cs-surface:#1e293b; --cs-card:#1e293b;
+  --cs-border:#334155; --cs-text:#f1f5f9; --cs-text-soft:#cbd5e1;
+  --cs-muted:#94a3b8;
+}
+body.cs-dark .cs-navbar { background:#1e293b !important; }
+body.cs-dark .cs-footer { background:#1e293b !important; }
+</style>
+
+<script>
+function tp(fid, iid) {
+  const f = document.getElementById(fid), i = document.getElementById(iid);
+  f.type = f.type === 'password' ? 'text' : 'password';
+  i.className = f.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+
+// Dark mode
+const csDark = {
+  toggle(on) {
+    document.body.classList.toggle('cs-dark', on);
+    localStorage.setItem('cs_dark', on ? '1' : '0');
+  }
+};
+
+// Restore dark mode on load
+document.addEventListener('DOMContentLoaded', () => {
+  const isDark = localStorage.getItem('cs_dark') === '1';
+  document.getElementById('darkModeToggle').checked = isDark;
+  if (isDark) document.body.classList.add('cs-dark');
+});
+
+// Avatar color cycling
+const avatarColors = [
+  'linear-gradient(135deg,#1d4ed8,#0891b2)',
+  'linear-gradient(135deg,#7c3aed,#db2777)',
+  'linear-gradient(135deg,#059669,#0891b2)',
+  'linear-gradient(135deg,#d97706,#dc2626)',
+  'linear-gradient(135deg,#0f172a,#1d4ed8)',
+];
+let colorIdx = parseInt(localStorage.getItem('cs_avatar_color') || '0');
+document.getElementById('profileAvatar').addEventListener('click', () => {
+  colorIdx = (colorIdx + 1) % avatarColors.length;
+  document.getElementById('profileAvatar').style.background = avatarColors[colorIdx];
+  localStorage.setItem('cs_avatar_color', colorIdx);
+});
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = parseInt(localStorage.getItem('cs_avatar_color') || '0');
+  document.getElementById('profileAvatar').style.background = avatarColors[saved];
+});
+</script>
+{% endblock %}

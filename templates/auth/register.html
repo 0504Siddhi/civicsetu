@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-wrapper">
+    <div class="auth-hero d-none d-md-flex flex-column justify-content-between">
+      <div>
+        <div class="hero-logo mb-4">
+          <div class="brand-icon brand-icon-lg"><i class="bi bi-building-check"></i></div>
+          <h2 class="mt-3 fw-bold" style="color:var(--cs-text)">Civic<span class="brand-accent">Setu</span></h2>
+          <p class="hero-sub">Join thousands of active citizens</p>
+        </div>
+        <div class="hero-features mt-4">
+          <div class="hero-feature"><i class="bi bi-shield-check-fill"></i><div><div class="feat-title">Free to Use</div><div class="feat-desc">No cost, open to all citizens</div></div></div>
+          <div class="hero-feature"><i class="bi bi-lightning-charge-fill"></i><div><div class="feat-title">Quick Setup</div><div class="feat-desc">Start reporting in 60 seconds</div></div></div>
+          <div class="hero-feature"><i class="bi bi-people-fill"></i><div><div class="feat-title">Community</div><div class="feat-desc">Make your city better together</div></div></div>
+        </div>
+      </div>
+      <div class="hero-stat-row">
+        <div class="hero-stat"><span>Easy</span><small>Registration</small></div>
+        <div class="hero-stat-div"></div>
+        <div class="hero-stat"><span>Safe</span><small>Encrypted</small></div>
+        <div class="hero-stat-div"></div>
+        <div class="hero-stat"><span>Free</span><small>Forever</small></div>
+      </div>
+    </div>
+
+    <div class="auth-card">
+      <div class="text-center mb-4">
+        <div class="brand-icon brand-icon-md d-md-none mx-auto mb-3"><i class="bi bi-building-check"></i></div>
+        <h4 class="fw-bold cs-heading">Create Account</h4>
+        <p class="cs-subheading mb-0">Join CivicSetu — report, track, resolve</p>
+      </div>
+      <form method="POST">
+        <div class="cs-form-group mb-3">
+          <label class="cs-label">Full Name</label>
+          <div class="cs-input-wrap">
+            <i class="bi bi-person cs-input-icon"></i>
+            <input type="text" name="name" class="cs-input" placeholder="Rahul Sharma" required autocomplete="name">
+          </div>
+        </div>
+        <div class="cs-form-group mb-3">
+          <label class="cs-label">Email Address</label>
+          <div class="cs-input-wrap">
+            <i class="bi bi-envelope cs-input-icon"></i>
+            <input type="email" name="email" class="cs-input" placeholder="rahul@example.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="cs-form-group mb-3">
+          <label class="cs-label">Mobile Number <span class="cs-optional">(optional)</span></label>
+          <div class="cs-input-wrap">
+            <i class="bi bi-phone cs-input-icon"></i>
+            <input type="tel" name="phone" class="cs-input" placeholder="+91 98765 43210" autocomplete="tel">
+          </div>
+        </div>
+        <div class="cs-form-group mb-3">
+          <label class="cs-label">Password</label>
+          <div class="cs-input-wrap">
+            <i class="bi bi-lock cs-input-icon"></i>
+            <input type="password" name="password" id="pwField" class="cs-input" placeholder="Min. 6 characters" required minlength="6">
+            <button type="button" class="cs-eye-btn" onclick="togglePass('pwField','eye1')"><i class="bi bi-eye" id="eye1"></i></button>
+          </div>
+        </div>
+        <div class="cs-form-group mb-4">
+          <label class="cs-label">Confirm Password</label>
+          <div class="cs-input-wrap">
+            <i class="bi bi-lock-fill cs-input-icon"></i>
+            <input type="password" name="confirm_password" id="cpField" class="cs-input" placeholder="Repeat your password" required>
+            <button type="button" class="cs-eye-btn" onclick="togglePass('cpField','eye2')"><i class="bi bi-eye" id="eye2"></i></button>
+          </div>
+        </div>
+        <button type="submit" class="cs-btn-primary w-100 mb-3" style="padding:.65rem">
+          <i class="bi bi-person-plus me-2"></i>Create Account
+        </button>
+        <div class="text-center">
+          <small class="cs-subheading">
+            Already have an account? <a href="{{ url_for('auth.login') }}" class="cs-link fw-semibold">Sign in here</a>
+          </small>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function togglePass(fid, iid) {
+  const f = document.getElementById(fid), i = document.getElementById(iid);
+  f.type = f.type === 'password' ? 'text' : 'password';
+  i.className = f.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+</script>
+{% endblock %}

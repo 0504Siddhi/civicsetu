@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}All Complaints{% endblock %}
+{% block content %}
+
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold cs-heading mb-1"><i class="bi bi-clipboard-data me-2 text-accent"></i>All Complaints</h4>
+    <p class="cs-subheading mb-0">Manage and update all citizen-reported issues.</p>
+  </div>
+  <a href="{{ url_for('admin.export_csv') }}" class="cs-btn-outline-accent mt-2 mt-md-0">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+</div>
+
+<!-- Filters -->
+<form method="GET" class="cs-filters">
+  <i class="bi bi-funnel" style="color:var(--cs-muted)"></i>
+  <span style="color:var(--cs-muted);font-size:.82rem;font-weight:600">FILTER BY:</span>
+  <select name="status" class="cs-filter-select" onchange="this.form.submit()">
+    <option value="">All Statuses</option>
+    {% for s in ['Pending','In Progress','Resolved','Rejected'] %}
+    <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <select name="type_id" class="cs-filter-select" onchange="this.form.submit()">
+    <option value="">All Issue Types</option>
+    {% for t in issue_types %}
+    <option value="{{ t.type_id }}" {% if type_filter == t.type_id|string %}selected{% endif %}>{{ t.type_name | replace('_',' ') | title }}</option>
+    {% endfor %}
+  </select>
+  {% if status_filter or type_filter %}
+  <a href="{{ url_for('admin.complaints') }}" class="cs-link" style="font-size:.82rem;margin-left:.5rem">
+    <i class="bi bi-x me-1"></i>Clear
+  </a>
+  {% endif %}
+  <span style="color:var(--cs-muted);font-size:.8rem;margin-left:auto">{{ complaints|length }} result(s)</span>
+</form>
+
+<div class="cs-card">
+  {% if complaints %}
+  <div class="table-responsive">
+    <table class="cs-table">
+      <thead>
+        <tr><th>#ID</th><th>Citizen</th><th>Issue Type</th><th>Location</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for c in complaints %}
+        <tr>
+          <td class="cs-id-cell">#{{ c.complaint_id }}</td>
+          <td>
+            <div style="color:var(--cs-text);font-weight:600;font-size:.9rem">{{ c.citizen.name }}</div>
+            <div style="color:var(--cs-muted);font-size:.78rem">{{ c.citizen.email }}</div>
+          </td>
+          <td>
+            <span class="cs-badge-type">{{ c.issue_type.type_name | replace('_',' ') | title }}</span>
+            <div class="mt-1">
+              {% set pdata = priority_map.get(c.issue_type.type_id, ('Low', 0)) %}
+              <span class="cs-priority cs-priority-{{ pdata[0] | lower }}" title="{{ pdata[1] }} complaints reported">
+                {{ pdata[0] }}
+              </span>
+              <small style="color:var(--cs-muted);font-size:.7rem;margin-left:4px;">{{ pdata[1] }} reports</small>
+            </div>
+          </td>
+          <td class="cs-location-cell">
+            <i class="bi bi-geo-alt text-accent me-1"></i>{{ c.location[:40] }}{% if c.location|length > 40 %}…{% endif %}
+          </td>
+          <td class="cs-date-cell">{{ c.submitted_at.strftime('%d %b %Y') }}</td>
+          <td>
+            <span class="cs-status cs-status-{{ c.status | lower | replace(' ','-') }}">
+              {% if c.status == 'Pending' %}<i class="bi bi-clock me-1"></i>
+              {% elif c.status == 'In Progress' %}<i class="bi bi-arrow-repeat me-1"></i>
+              {% elif c.status == 'Resolved' %}<i class="bi bi-check-circle me-1"></i>
+              {% else %}<i class="bi bi-x-circle me-1"></i>{% endif %}
+              {{ c.status }}
+            </span>
+          </td>
+          <td>
+            <button class="cs-btn-icon" data-bs-toggle="modal" data-bs-target="#updateModal"
+                    data-id="{{ c.complaint_id }}" data-status="{{ c.status }}" title="Update status">
+              <i class="bi bi-pencil-fill"></i>
+            </button>
+            <a href="{{ url_for('admin.complaint_detail', complaint_id=c.complaint_id) }}" class="cs-btn-icon cs-btn-icon-view ms-1" title="View details">
+              <i class="bi bi-eye-fill"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="cs-empty-state">
+    <i class="bi bi-search"></i>
+    <h6>No complaints found</h6>
+    <p>Try adjusting your filters or check back later.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Update Modal -->
+<div class="modal fade" id="updateModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content cs-modal">
+      <div class="modal-header">
+        <h6 class="modal-title cs-heading"><i class="bi bi-pencil-square me-2 text-accent"></i>Update Complaint Status</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="updateForm">
+        <input type="hidden" name="next" value="{{ url_for('admin.complaints', status=status_filter, type_id=type_filter) }}">
+        <div class="modal-body">
+          <div class="cs-form-group mb-3">
+            <label class="cs-label">New Status</label>
+            <div class="cs-input-wrap">
+              <i class="bi bi-arrow-repeat cs-input-icon"></i>
+              <select name="status" class="cs-input cs-select" required>
+                <option value="Pending">⏳ Pending</option>
+                <option value="In Progress">🔄 In Progress</option>
+                <option value="Resolved">✅ Resolved</option>
+                <option value="Rejected">❌ Rejected</option>
+              </select>
+            </div>
+          </div>
+          <div class="cs-form-group">
+            <label class="cs-label">Remarks <span class="cs-optional">(optional)</span></label>
+            <textarea name="remarks" class="cs-input cs-textarea" rows="3" placeholder="Reason for status change…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="cs-btn-outline-accent btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="cs-btn-primary btn-sm">Update Status</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('updateModal').addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  const id = btn.getAttribute('data-id');
+  const status = btn.getAttribute('data-status');
+  this.querySelector('#updateForm').action = `/admin/complaints/${id}/update`;
+  const sel = this.querySelector('select[name="status"]');
+  [...sel.options].forEach(opt => { opt.selected = opt.value === status; });
+});
+</script>
+{% endblock %}
