@@ -1,5 +1,4 @@
-# CivicSetu — Smart Civic Issue Reporting System
-DBMS Mini Project · SPPU · 2026
+# CivicSetu — Smart Civic Issue Reporting and Resolution System
 
 ## Quick Start (3 steps)
 
