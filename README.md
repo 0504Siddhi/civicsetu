@@ -1,31 +1,81 @@
-# CivicSetu — Smart Civic Issue Reporting and Resolution System
+# CivicSetu — Smart Civic Issue Reporting & Resolution System
 
-## Quick Start (3 steps)
+CivicSetu (सेतु = Bridge) is an AI-powered civic issue reporting platform that connects citizens and municipalities through structured, transparent, and trackable complaint management.
 
-### 1. Install dependencies
-pip install flask flask-sqlalchemy flask-login flask-bcrypt
+It enables citizens to report civic issues using images, while AI automatically detects and categorizes problems for faster resolution.
 
-### 2. Get FREE Gemini API key (no card needed)
-- Go to https://aistudio.google.com/
-- Sign in with Google → Click "Get API Key" → "Create API Key"
-- Copy the key (starts with AIzaSy...)
+---
 
-### 3. Run
-# Windows CMD:
-set GEMINI_API_KEY=AIzaSy-xxxxxxxxxxxxxxxxxx
+## 🌍 Problem
+
+Many civic issues in India (potholes, garbage, water leakage, etc.) are still reported through informal channels like calls or WhatsApp messages, leading to:
+
+- No tracking system  
+- No accountability  
+- No structured complaint records  
+
+CivicSetu solves this by creating a transparent digital workflow.
+
+---
+
+## 🎯 Features
+
+### 👤 Citizen Module
+- Report civic issues using images  
+- AI-based automatic issue detection  
+- GPS-based location tagging  
+- Unique complaint ID generation  
+- Real-time status tracking (Pending → In Progress → Resolved)  
+
+### 🤖 AI System
+- Google Gemini Vision API integration  
+- Auto-classifies issues (pothole, garbage, leakage, etc.)  
+- Confidence-based fallback to manual selection  
+
+### 🏛️ Admin Dashboard
+- Manage and update complaints  
+- Priority system based on issue volume  
+- Status updates with timestamps  
+- Audit logs (admin actions tracked)  
+
+### 🏆 Engagement System
+- Civic Honor Score  
+- Badges for active users (Civic Hero, Area Guardian, etc.)  
+- Encourages citizen participation  
+
+---
+
+## 🛠️ Tech Stack
+
+- Python (Flask)  
+- SQLite  
+- HTML, CSS, JavaScript  
+- Google Gemini Vision API  
+- Render (Deployment)  
+
+---
+
+## ♿ Accessibility
+
+- Keyboard navigation support  
+- High contrast mode  
+- Voice input support  
+- ARIA labels  
+- WAVE & Lighthouse tested  
+
+---
+
+## ⚙️ Setup Instructions
+
+1. Install dependencies  
+```bash
+pip install -r requirements.txt
+```
+2. Set API key
+```bash
+GEMINI_API_KEY=your_api_key_here
+```
+3. Run the project
+```bash
 python run.py
-
-# Mac/Linux:
-export GEMINI_API_KEY=AIzaSy-xxxxxxxxxxxxxxxxxx
-python run.py
-
-Open http://localhost:5000
-
-## Admin Login
-Email: admin@civicsetu.in
-Password: admin123
-
-## AI Detection
-- Uses Google Gemini 1.5 Flash Vision (FREE - 1500 calls/day)
-- Auto-detects: pothole, garbage, water_leakage, streetlight, sewage, tree_fall, electricity, other
-- If GEMINI_API_KEY not set → user selects manually, everything else still works
+```
