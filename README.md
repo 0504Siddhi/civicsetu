@@ -79,3 +79,8 @@ GEMINI_API_KEY=your_api_key_here
 ```bash
 python run.py
 ```
+## 🔗 Links
+
+- 🌍 Live Demo: https://civicsetu-new-final.onrender.com/
+  
+ ⚡ Live Demo (may take 20–30 seconds to load on first request) 
