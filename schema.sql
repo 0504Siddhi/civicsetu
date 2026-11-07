@@ -75,11 +75,38 @@ CREATE TABLE IF NOT EXISTS status_log (
     FOREIGN KEY (admin_id)     REFERENCES admins(admin_id)         ON DELETE SET NULL
 );
 
+-- ─── Complaint Reactions (Likes / Dislikes) ───────────────────
+CREATE TABLE IF NOT EXISTS complaint_reactions (
+    reaction_id  INTEGER     PRIMARY KEY AUTOINCREMENT,
+    complaint_id INTEGER     NOT NULL,
+    user_id      INTEGER     NOT NULL,
+    reaction     VARCHAR(10) NOT NULL CHECK (reaction IN ('like', 'dislike')),
+    created_at   DATETIME    DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (complaint_id) REFERENCES complaints(complaint_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id)      REFERENCES users(user_id)           ON DELETE CASCADE,
+    CONSTRAINT uq_reaction_user_complaint UNIQUE (complaint_id, user_id)
+);
+
+-- ─── Complaint Comments ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS complaint_comments (
+    comment_id   INTEGER  PRIMARY KEY AUTOINCREMENT,
+    complaint_id INTEGER  NOT NULL,
+    user_id      INTEGER  NOT NULL,
+    body         TEXT     NOT NULL,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (complaint_id) REFERENCES complaints(complaint_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id)      REFERENCES users(user_id)           ON DELETE CASCADE
+);
+
 -- ─── Indexes for performance ──────────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_complaints_user    ON complaints(user_id);
-CREATE INDEX IF NOT EXISTS idx_complaints_status  ON complaints(status);
-CREATE INDEX IF NOT EXISTS idx_complaints_type    ON complaints(type_id);
-CREATE INDEX IF NOT EXISTS idx_statuslog_complaint ON status_log(complaint_id);
+CREATE INDEX IF NOT EXISTS idx_complaints_user       ON complaints(user_id);
+CREATE INDEX IF NOT EXISTS idx_complaints_status     ON complaints(status);
+CREATE INDEX IF NOT EXISTS idx_complaints_type       ON complaints(type_id);
+CREATE INDEX IF NOT EXISTS idx_statuslog_complaint   ON status_log(complaint_id);
+CREATE INDEX IF NOT EXISTS idx_reactions_complaint   ON complaint_reactions(complaint_id);
+CREATE INDEX IF NOT EXISTS idx_comments_complaint    ON complaint_comments(complaint_id);
 
 -- ─── Useful views ─────────────────────────────────────────────
 CREATE VIEW IF NOT EXISTS complaint_summary AS

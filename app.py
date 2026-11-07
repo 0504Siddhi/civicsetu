@@ -3,11 +3,13 @@ CivicSetu — Smart Civic Issue Reporting & Resolution System
 Main Flask application entry point
 """
 
-from flask import Flask
+import os
+import secrets
+import hmac
+from flask import Flask, session, request, abort, flash, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
-import os
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -17,11 +19,26 @@ bcrypt = Bcrypt()
 def create_app():
     app = Flask(__name__)
 
+    # ── Environment & Production Checks ────────────────────────
+    is_production = os.environ.get('FLASK_ENV') == 'production' or bool(os.environ.get('RENDER'))
+
     # ── Configuration ──────────────────────────────────────────
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'civicsetu_secret_key_2026')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-        'DATABASE_URL', 'sqlite:///civicsetu.db'
-    )
+    secret_key = os.environ.get('SECRET_KEY')
+    if not secret_key:
+        if is_production:
+            raise RuntimeError(
+                "CRITICAL: SECRET_KEY environment variable must be set in production environments."
+            )
+        secret_key = 'civicsetu_dev_secret_key_change_in_production'
+
+    app.config['SECRET_KEY'] = secret_key
+
+    # Database URL: handle PostgreSQL 'postgres://' -> 'postgresql://' for SQLAlchemy 2.0
+    db_url = os.environ.get('DATABASE_URL', 'sqlite:///civicsetu.db')
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
     app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB
@@ -37,6 +54,30 @@ def create_app():
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
 
+    # ── CSRF Protection ────────────────────────────────────────
+    @app.context_processor
+    def inject_csrf_token():
+        if '_csrf_token' not in session:
+            session['_csrf_token'] = secrets.token_hex(32)
+        return dict(csrf_token=lambda: session['_csrf_token'])
+
+    @app.before_request
+    def validate_csrf():
+        if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
+            # Allow API routes to handle their own session/token validation
+            if request.path.startswith('/api/'):
+                return
+            session_token = session.get('_csrf_token')
+            request_token = request.form.get('csrf_token') or request.headers.get('X-CSRFToken')
+            if not session_token or not request_token or not hmac.compare_digest(session_token, request_token):
+                abort(400, description="CSRF validation failed: Missing or invalid CSRF token.")
+
+    # ── HTTP Error Handlers ────────────────────────────────────
+    @app.errorhandler(413)
+    def request_entity_too_large(e):
+        flash('Uploaded file is too large. Maximum allowed file size is 5 MB.', 'danger')
+        return redirect(request.referrer or url_for('citizen.submit'))
+
     # ── Register blueprints ────────────────────────────────────
     from routes.auth import auth_bp
     from routes.citizen import citizen_bp
@@ -51,13 +92,13 @@ def create_app():
     # ── Create DB tables & seed data ──────────────────────────
     with app.app_context():
         db.create_all()
-        _seed_data()
+        _seed_data(is_production)
 
     return app
 
 
-def _seed_data():
-    """Seed issue types and a default admin if they don't exist."""
+def _seed_data(is_production=False):
+    """Seed default issue types and admin user if they don't exist."""
     from models.models import IssueType, Admin
 
     try:
@@ -79,11 +120,20 @@ def _seed_data():
         db.session.add_all(types)
 
     if db.session.query(Admin).count() == 0:
-        from app import bcrypt as _bcrypt
-        hashed = _bcrypt.generate_password_hash('admin123').decode('utf-8')
-        admin = Admin(username='admin', email='admin@civicsetu.in',
-                      password_hash=hashed, role='super_admin')
-        db.session.add(admin)
+        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@civicsetu.in')
+        admin_pw = os.environ.get('ADMIN_PASSWORD')
+        if not admin_pw:
+            if is_production:
+                print("[Security Warning] No ADMIN_PASSWORD provided in production; skipping default admin seeding.")
+            else:
+                admin_pw = 'admin123'
+
+        if admin_pw:
+            from app import bcrypt as _bcrypt
+            hashed = _bcrypt.generate_password_hash(admin_pw).decode('utf-8')
+            admin = Admin(username='admin', email=admin_email,
+                          password_hash=hashed, role='super_admin')
+            db.session.add(admin)
 
     db.session.commit()
 

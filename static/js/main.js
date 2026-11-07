@@ -18,3 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// Toggle password field visibility
+function togglePass(fid, iid) {
+  const f = document.getElementById(fid);
+  const i = document.getElementById(iid);
+  if (!f) return;
+  const isPass = f.type === 'password';
+  f.type = isPass ? 'text' : 'password';
+  if (i) {
+    i.className = isPass ? 'bi bi-eye-slash' : 'bi bi-eye';
+  }
+}

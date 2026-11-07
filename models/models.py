@@ -85,6 +85,14 @@ class Complaint(db.Model):
     def __repr__(self):
         return f'<Complaint #{self.complaint_id} [{self.status}]>'
 
+    @property
+    def image_url(self):
+        """Resolves image reference to a browser-accessible URL."""
+        if not self.image_path:
+            return None
+        from utils.storage import resolve_image_url
+        return resolve_image_url(self.image_path)
+
 
 class StatusLog(db.Model):
     __tablename__ = 'status_log'

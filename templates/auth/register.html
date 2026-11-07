@@ -32,6 +32,7 @@
         <p class="cs-subheading mb-0">Join CivicSetu — report, track, resolve</p>
       </div>
       <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="cs-form-group mb-3">
           <label class="cs-label">Full Name</label>
           <div class="cs-input-wrap">
@@ -81,13 +82,4 @@
     </div>
   </div>
 </div>
-{% endblock %}
-{% block scripts %}
-<script>
-function togglePass(fid, iid) {
-  const f = document.getElementById(fid), i = document.getElementById(iid);
-  f.type = f.type === 'password' ? 'text' : 'password';
-  i.className = f.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
-}
-</script>
 {% endblock %}

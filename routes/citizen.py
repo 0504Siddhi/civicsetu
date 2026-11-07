@@ -53,29 +53,61 @@ def submit():
         location = request.form.get('location', '').strip()
         desc     = request.form.get('description', '').strip()
         type_id  = request.form.get('type_id')
+        form_data = {'location': location, 'description': desc, 'type_id': type_id}
 
         if not location:
             flash('Location is required.', 'warning')
-            return render_template('citizen/submit.html', issue_types=issue_types, count_map=count_map)
+            return render_template('citizen/submit.html', issue_types=issue_types, count_map=count_map, form_data=form_data)
         if not type_id:
             flash('Please select an issue category.', 'warning')
-            return render_template('citizen/submit.html', issue_types=issue_types, count_map=count_map)
+            return render_template('citizen/submit.html', issue_types=issue_types, count_map=count_map, form_data=form_data)
 
         image_path = None
-        if file and file.filename and allowed_file(file.filename):
-            ext       = file.filename.rsplit('.', 1)[1].lower()
-            filename  = f"{uuid.uuid4().hex}.{ext}"
-            save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            file.save(save_path)
-            image_path = f'uploads/{filename}'
+        if file and file.filename:
+            if not allowed_file(file.filename):
+                flash('Invalid image format. Allowed formats: PNG, JPG, JPEG.', 'danger')
+                return render_template('citizen/submit.html', issue_types=issue_types, count_map=count_map, form_data=form_data)
+
+            try:
+                from utils.storage import upload_complaint_image
+                image_path = upload_complaint_image(file)
+            except Exception as upload_err:
+                current_app.logger.error("Complaint image upload failed [%s]", type(upload_err).__name__)
+                flash('Image upload failed. Your complaint was not submitted. Please try again.', 'danger')
+                return render_template('citizen/submit.html', issue_types=issue_types, count_map=count_map, form_data=form_data)
+
+        # Validate optional AI confidence metadata if provided
+        ai_conf_raw = request.form.get('ai_confidence')
+        ai_confidence = None
+        if ai_conf_raw is not None and ai_conf_raw != '':
+            try:
+                val = float(ai_conf_raw)
+                if 0.0 <= val <= 1.0:
+                    ai_confidence = round(val, 4)
+            except (ValueError, TypeError):
+                ai_confidence = None
 
         complaint = Complaint(
             user_id=current_user.user_id, type_id=int(type_id),
             image_path=image_path, location=location,
-            description=desc, ai_confidence=None,
+            description=desc, ai_confidence=ai_confidence,
         )
-        db.session.add(complaint)
-        db.session.commit()
+
+        try:
+            db.session.add(complaint)
+            db.session.commit()
+        except Exception as db_err:
+            db.session.rollback()
+            current_app.logger.error("Database commit error [%s]", type(db_err).__name__)
+            if image_path:
+                try:
+                    from utils.storage import delete_complaint_image
+                    delete_complaint_image(image_path)
+                except Exception as cleanup_err:
+                    current_app.logger.warning("Failed to clean up image after database error [%s]", type(cleanup_err).__name__)
+            flash('An error occurred while saving your complaint. Please try again.', 'danger')
+            return render_template('citizen/submit.html', issue_types=issue_types, count_map=count_map, form_data=form_data)
+
         flash(f'✅ Complaint #{complaint.complaint_id} submitted successfully!', 'success')
         return redirect(url_for('citizen.dashboard'))
 

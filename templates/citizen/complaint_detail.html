@@ -31,7 +31,7 @@
         <div class="cs-card">
           <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-image me-2 text-accent"></i><span data-cs-key="Photo Evidence">Photo Evidence</span></h6></div>
           {% if complaint.image_path %}
-            <img src="{{ url_for('static', filename=complaint.image_path) }}" class="img-fluid rounded" style="width:100%;max-height:300px;object-fit:cover;border:1px solid var(--cs-border)">
+            <img src="{{ complaint.image_url }}" class="img-fluid rounded" style="width:100%;max-height:300px;object-fit:cover;border:1px solid var(--cs-border)">
           {% else %}
             <div class="cs-empty-state" style="padding:2rem">
               <i class="bi bi-image-alt" style="font-size:2.5rem;opacity:.4"></i>
@@ -42,12 +42,14 @@
           <!-- Likes / Dislikes -->
           <div class="d-flex gap-3 mt-3 px-1 pb-1">
             <form method="POST" action="{{ url_for('citizen.react', complaint_id=complaint.complaint_id) }}" style="margin:0">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="reaction" value="like">
               <button type="submit" class="cs-react-btn {% if my_reaction == 'like' %}cs-react-active-like{% endif %}" title="Valid complaint">
                 <i class="bi bi-hand-thumbs-up-fill"></i> <span>{{ likes }}</span>
               </button>
             </form>
             <form method="POST" action="{{ url_for('citizen.react', complaint_id=complaint.complaint_id) }}" style="margin:0">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="reaction" value="dislike">
               <button type="submit" class="cs-react-btn {% if my_reaction == 'dislike' %}cs-react-active-dislike{% endif %}" title="Seems false">
                 <i class="bi bi-hand-thumbs-down-fill"></i> <span>{{ dislikes }}</span>
@@ -135,6 +137,7 @@
       {% endif %}
       <div style="border-top:1px solid var(--cs-border);padding:1rem 0 0;">
         <form method="POST" action="{{ url_for('citizen.add_comment', complaint_id=complaint.complaint_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="d-flex gap-2 align-items-end">
             <textarea name="body" class="cs-input cs-textarea" rows="2"
                       placeholder="Add a comment…" data-cs-ph="Add a comment…"

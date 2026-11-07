@@ -13,6 +13,8 @@
     </div>
 
     <form method="POST" enctype="multipart/form-data" id="submitForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="ai_confidence" id="aiConfidenceInput">
       <div class="row g-4">
 
         <!-- LEFT: Image upload + AI result -->
@@ -107,7 +109,7 @@
                 <select name="type_id" id="typeSelect" class="cs-input cs-select" required>
                   <option value="">— Select issue type —</option>
                   {% for t in issue_types %}
-                  <option value="{{ t.type_id }}" data-name="{{ t.type_name }}">
+                  <option value="{{ t.type_id }}" data-name="{{ t.type_name }}" {% if form_data and form_data.type_id|string == t.type_id|string %}selected{% endif %}>
                     {{ t.type_name | replace('_',' ') | title }} · {{ t.priority_level }} priority
                   </option>
                   {% endfor %}
@@ -120,7 +122,8 @@
               <div class="cs-input-wrap">
                 <i class="bi bi-geo-alt cs-input-icon"></i>
                 <input type="text" name="location" id="locationInput" class="cs-input"
-                       style="padding-right:3rem" placeholder="e.g. MG Road near Bus Stop, Pune" required>
+                       style="padding-right:3rem" placeholder="e.g. MG Road near Bus Stop, Pune"
+                       value="{{ form_data.location if form_data else '' }}" required>
                 <button type="button" class="cs-gps-btn" id="gpsBtn" title="Auto-detect GPS">
                   <i class="bi bi-geo-alt-fill"></i>
                 </button>
@@ -131,7 +134,7 @@
             <div class="cs-form-group mb-3">
               <label class="cs-label" for="descriptionInput">Description <span class="cs-optional">(optional)</span></label>
               <textarea name="description" id="descriptionInput" class="cs-input cs-textarea" rows="3"
-                        placeholder="Describe severity, how long it's been there, any safety concerns…"></textarea>
+                        placeholder="Describe severity, how long it's been there, any safety concerns…">{{ form_data.description if form_data else '' }}</textarea>
               <!-- ♿ Voice Input Button -->
               <button type="button" id="voiceBtn" onclick="csVoice.start()"
                 aria-label="Use voice to fill description"
@@ -225,8 +228,8 @@
 </style>
 
 <script>
-/* ── Classify via our Flask endpoint (calls Claude vision server-side) ── */
-async function classifyWithClaude(base64Data, mimeType) {
+/* ── Classify via our Flask endpoint (calls Gemini Vision server-side) ── */
+async function classifyWithGemini(base64Data, mimeType) {
   setBadge('busy', 'Analysing…');
   document.getElementById('aiLoading').classList.remove('d-none');
   document.getElementById('aiResult').classList.add('d-none');
@@ -270,6 +273,11 @@ function showResult(data) {
 
   setBadge('done', pct + '% confident');
 
+  const confInput = document.getElementById('aiConfidenceInput');
+  if (confInput && data.confidence !== undefined && data.confidence !== null) {
+    confInput.value = data.confidence;
+  }
+
   if (data.type_id && data.confidence >= 0.55) {
     applySelection(data.type_id, label, pct);
   }
@@ -294,6 +302,8 @@ function showError(msg) {
 }
 
 function clearAi() {
+  const confInput = document.getElementById('aiConfidenceInput');
+  if (confInput) confInput.value = '';
   document.getElementById('typeSelect').value = '';
   document.querySelectorAll('.cs-chip').forEach(c => c.classList.remove('cs-chip-active'));
   document.getElementById('aiAutoNote').classList.add('d-none');
@@ -335,8 +345,8 @@ function handleFile(file) {
     preview.src = e.target.result;
     preview.classList.remove('d-none');
     dropZone.style.display = 'none';
-    // Send to Claude
-    classifyWithClaude(e.target.result, file.type);
+    // Send to Gemini Vision
+    classifyWithGemini(e.target.result, file.type);
   };
   reader.readAsDataURL(file);
 }

@@ -9,7 +9,7 @@
     <div class="auth-hero d-none d-md-flex flex-column justify-content-between">
       <div>
         <div class="hero-logo mb-4">
-          <img src="/static/images/logo.jpg" alt="Brand Logo" class="img-fluid mb-3" style="max-height: 60px;">
+          <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Brand Logo" class="img-fluid mb-3" style="max-height: 60px;">
           <p class="hero-sub">Your Bridge to Better Governance</p>
         </div>
         <div class="hero-features mt-4">
@@ -45,6 +45,7 @@
       </div>
 
       <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="role-toggle mb-4">
           <input type="radio" class="btn-check" name="role" id="roleC" value="citizen" checked>
           <label class="role-btn" for="roleC"><i class="bi bi-person-fill me-1"></i>Citizen</label>
@@ -84,23 +85,8 @@
           </small>
         </div>
       </form>
-
-      <div class="auth-hint mt-4">
-        <i class="bi bi-info-circle me-2"></i>
-        Demo admin: <strong>admin@civicsetu.in</strong> / <strong>admin123</strong>
-      </div>
     </div>
 
   </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function togglePass(fid, iid) {
-  const f = document.getElementById(fid), i = document.getElementById(iid);
-  f.type = f.type === 'password' ? 'text' : 'password';
-  i.className = f.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
-}
-</script>
 {% endblock %}

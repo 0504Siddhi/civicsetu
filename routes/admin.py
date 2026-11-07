@@ -25,6 +25,29 @@ def admin_required(f):
     return decorated
 
 
+def _get_dynamic_priority_map():
+    """Rank issue types by complaint count and map them to dynamic priority labels."""
+    from sqlalchemy import func
+    type_counts = (db.session.query(IssueType, func.count(Complaint.complaint_id).label('cnt'))
+                   .outerjoin(Complaint, Complaint.type_id == IssueType.type_id)
+                   .group_by(IssueType.type_id)
+                   .order_by(func.count(Complaint.complaint_id).desc())
+                   .all())
+
+    priority_map = {}
+    for i, (issue_type, cnt) in enumerate(type_counts):
+        if i == 0:
+            priority_map[issue_type.type_id] = ('Critical', cnt)
+        elif i == 1:
+            priority_map[issue_type.type_id] = ('High', cnt)
+        elif i <= 3:
+            priority_map[issue_type.type_id] = ('Medium', cnt)
+        else:
+            priority_map[issue_type.type_id] = ('Low', cnt)
+
+    return type_counts, priority_map
+
+
 @admin_bp.route('/dashboard')
 @login_required
 @admin_required
@@ -39,25 +62,7 @@ def dashboard():
               .order_by(Complaint.submitted_at.desc())
               .limit(10).all())
 
-    # ── Dynamic Priority: rank issue types by complaint count ──
-    from sqlalchemy import func
-    type_counts = (db.session.query(IssueType, func.count(Complaint.complaint_id).label('cnt'))
-                   .outerjoin(Complaint, Complaint.type_id == IssueType.type_id)
-                   .group_by(IssueType.type_id)
-                   .order_by(func.count(Complaint.complaint_id).desc())
-                   .all())
-
-    # Assign dynamic priority labels based on rank
-    priority_map = {}
-    for i, (issue_type, cnt) in enumerate(type_counts):
-        if i == 0:
-            priority_map[issue_type.type_id] = ('Critical', cnt)
-        elif i == 1:
-            priority_map[issue_type.type_id] = ('High', cnt)
-        elif i <= 3:
-            priority_map[issue_type.type_id] = ('Medium', cnt)
-        else:
-            priority_map[issue_type.type_id] = ('Low', cnt)
+    type_counts, priority_map = _get_dynamic_priority_map()
 
     stats = dict(total=total, pending=pending, in_progress=in_prog,
                  resolved=resolved, rejected=rejected)
@@ -81,23 +86,7 @@ def complaints():
     all_complaints = query.order_by(Complaint.submitted_at.desc()).all()
     issue_types    = IssueType.query.all()
 
-    # ── Dynamic Priority: rank by live complaint count ──
-    from sqlalchemy import func
-    type_counts = (db.session.query(IssueType, func.count(Complaint.complaint_id).label('cnt'))
-                   .outerjoin(Complaint, Complaint.type_id == IssueType.type_id)
-                   .group_by(IssueType.type_id)
-                   .order_by(func.count(Complaint.complaint_id).desc())
-                   .all())
-    priority_map = {}
-    for i, (issue_type, cnt) in enumerate(type_counts):
-        if i == 0:
-            priority_map[issue_type.type_id] = ('Critical', cnt)
-        elif i == 1:
-            priority_map[issue_type.type_id] = ('High', cnt)
-        elif i <= 3:
-            priority_map[issue_type.type_id] = ('Medium', cnt)
-        else:
-            priority_map[issue_type.type_id] = ('Low', cnt)
+    type_counts, priority_map = _get_dynamic_priority_map()
 
     return render_template('admin/complaints.html',
                            complaints=all_complaints,
@@ -144,8 +133,10 @@ def update_status(complaint_id):
     db.session.commit()
     flash(f'Complaint #{complaint_id} updated to "{new_status}".', 'success')
 
-    # Return to wherever we came from
-    next_page = request.form.get('next', url_for('admin.complaints'))
+    # Return to wherever we came from, with open-redirect protection
+    next_page = request.form.get('next', '')
+    if not next_page or not next_page.startswith('/') or next_page.startswith('//'):
+        next_page = url_for('admin.complaints')
     return redirect(next_page)
 
 

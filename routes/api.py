@@ -32,7 +32,7 @@ def get_complaints():
         'location':     c.location,
         'status':       c.status,
         'submitted_at': c.submitted_at.isoformat(),
-        'image_url':    f'/static/{c.image_path}' if c.image_path else None,
+        'image_url':    c.image_url,
     } for c in items])
 
 @api_bp.route('/complaints/<int:cid>', methods=['PATCH'])

@@ -2,5 +2,9 @@ flask>=3.0
 flask-sqlalchemy>=3.1
 flask-login>=0.6
 flask-bcrypt>=1.0
-# AI detection uses Claude API via stdlib urllib — no extra package needed
-# Just set ANTHROPIC_API_KEY environment variable
+gunicorn>=21.2.0
+python-dotenv>=1.0.0
+psycopg2-binary>=2.9.9
+cloudinary>=1.36.0
+# AI detection uses Google Gemini API via stdlib urllib — no extra package needed
+# Just set GEMINI_API_KEY environment variable

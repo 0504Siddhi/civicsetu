@@ -106,6 +106,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" id="updateForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="next" value="{{ url_for('admin.complaints', status=status_filter, type_id=type_filter) }}">
         <div class="modal-body">
           <div class="cs-form-group mb-3">

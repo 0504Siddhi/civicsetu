@@ -125,6 +125,7 @@
         <div class="cs-card mb-4">
           <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-translate me-2 text-accent"></i>🌐 Language</h6></div>
           <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="action" value="set_language">
             <div class="d-flex flex-column gap-2 py-2 px-1">
               {% for code, flag, label in [('en','🇬🇧','English'), ('hi','🇮🇳','हिंदी (Hindi)'), ('mr','🟠','मराठी (Marathi)')] %}
@@ -168,6 +169,7 @@
         <div class="cs-card mb-4">
           <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-pencil-square me-2 text-accent"></i>Edit Profile</h6></div>
           <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="action" value="update_profile">
             <div class="cs-form-group mb-3">
               <label class="cs-label">Full Name</label>
@@ -200,6 +202,7 @@
         <div class="cs-card">
           <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-lock me-2 text-accent"></i>Change Password</h6></div>
           <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="action" value="change_password">
             <div class="cs-form-group mb-3">
               <label class="cs-label">Current Password</label>

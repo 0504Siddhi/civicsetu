@@ -36,7 +36,7 @@
         <div class="cs-card">
           <div class="cs-card-header"><h6 class="mb-0 fw-semibold cs-heading"><i class="bi bi-image me-2 text-accent"></i>Photo Evidence</h6></div>
           {% if complaint.image_path %}
-            <img src="{{ url_for('static', filename=complaint.image_path) }}" class="img-fluid rounded"
+            <img src="{{ complaint.image_url }}" class="img-fluid rounded"
                  style="width:100%;max-height:320px;object-fit:cover;border:1px solid var(--cs-border)">
           {% else %}
             <div class="cs-empty-state" style="padding:2rem">
@@ -146,6 +146,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" id="updateForm" action="{{ url_for('admin.update_status', complaint_id=complaint.complaint_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="next" value="{{ url_for('admin.complaint_detail', complaint_id=complaint.complaint_id) }}">
         <div class="modal-body">
           <div class="cs-form-group mb-3">
