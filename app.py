@@ -16,6 +16,41 @@ login_manager = LoginManager()
 bcrypt = Bcrypt()
 
 
+def normalize_database_url(raw_url=None, is_production=False):
+    """
+    Safely normalizes database connection strings for SQLAlchemy 2.0+ compatibility.
+    - Explicitly enforces the 'postgresql+psycopg2://' driver scheme for PostgreSQL,
+      matching the installed psycopg2-binary package and preventing SQLAlchemy from
+      attempting to import Psycopg 3 ('psycopg').
+    - Preserves local SQLite database support when DATABASE_URL is omitted or set to SQLite.
+    - Gracefully handles missing or empty DATABASE_URL in production with a clear error.
+    """
+    url = (raw_url or '').strip()
+    if not url:
+        if is_production:
+            raise RuntimeError(
+                "CRITICAL: DATABASE_URL environment variable is missing or empty in production. "
+                "Render PostgreSQL requires a valid connection string. "
+                "Please configure DATABASE_URL in your Render Web Service dashboard."
+            )
+        return 'sqlite:///civicsetu.db'
+
+    # Normalise all PostgreSQL URL variants to explicit postgresql+psycopg2://
+    postgres_prefixes = (
+        'postgresql+psycopg2://',
+        'postgresql+psycopg://',
+        'postgresql://',
+        'postgres+psycopg2://',
+        'postgres+psycopg://',
+        'postgres://',
+    )
+    for prefix in postgres_prefixes:
+        if url.startswith(prefix):
+            return 'postgresql+psycopg2://' + url[len(prefix):]
+
+    return url
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -33,11 +68,9 @@ def create_app():
 
     app.config['SECRET_KEY'] = secret_key
 
-    # Database URL: handle PostgreSQL 'postgres://' -> 'postgresql://' for SQLAlchemy 2.0
-    db_url = os.environ.get('DATABASE_URL', 'sqlite:///civicsetu.db')
-    if db_url.startswith('postgres://'):
-        db_url = db_url.replace('postgres://', 'postgresql://', 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+    # Database URL: safely normalize PostgreSQL connection strings for psycopg2 driver
+    raw_db_url = os.environ.get('DATABASE_URL')
+    app.config['SQLALCHEMY_DATABASE_URI'] = normalize_database_url(raw_db_url, is_production=is_production)
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
@@ -135,7 +168,11 @@ def _seed_data(is_production=False):
                           password_hash=hashed, role='super_admin')
             db.session.add(admin)
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
 
 if __name__ == '__main__':
