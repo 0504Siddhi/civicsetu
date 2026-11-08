@@ -29,6 +29,33 @@ CivicSetu is a web-based civic issue reporting and resolution platform that brid
 
 ---
 
+## Prototype Screenshots
+
+> [!NOTE]
+> These screenshots reflect the live, functional CivicSetu prototype running with active database persistence, Google Gemini Vision AI classification, and municipal triage workflows.
+
+### Citizen Dashboard
+![Citizen Dashboard](docs/screenshots/citizen-dashboard.png)
+*Active citizen dashboard showing real-time issue status counters (Total Submitted, Pending, In Progress, Resolved) and the searchable complaint history table.*
+
+### AI-Assisted Issue Reporting
+![Report a Civic Issue with Gemini Vision AI](docs/screenshots/report-complaint.png)
+*Complaint submission interface featuring Google Gemini Vision AI multi-modal classification (auto-detecting category and confidence), automatic reverse geolocation tagging, Web Speech voice input, and accessibility controls.*
+
+### Complaint Details & Community Engagement
+![Complaint Details](docs/screenshots/complaint-details.png)
+*Detailed complaint inspection screen displaying photographic evidence, issue metadata, calculated priority, community upvote/downvote reactions, and public comments thread.*
+
+### Municipal Administrative Dashboard & Priority Engine
+![Admin Dashboard and Dynamic Priority Engine](docs/screenshots/admin-dashboard.png)
+*Municipal administrative portal showing real-time status counters, complaint triage queue, and the live Dynamic Priority Engine that automatically computes urgency based on civic report volume.*
+
+### Citizen Onboarding & Empty State
+![Citizen Onboarding](docs/screenshots/citizen-onboarding.png)
+*Clean onboarding state welcoming new citizens and providing an immediate call-to-action to report their first civic issue.*
+
+---
+
 ## Technology Stack
 
 | Layer | Technologies |
@@ -92,6 +119,8 @@ civicsetu/
 ├── schema.sql              # Relational database schema reference
 ├── .env.example            # Environment configuration template
 ├── .gitignore              # Git ignore rules for secrets, DBs, and virtual environments
+├── docs/
+│   └── screenshots/        # Application prototype screenshots for documentation
 ├── models/
 │   ├── __init__.py
 │   └── models.py           # SQLAlchemy ORM models and relationships
