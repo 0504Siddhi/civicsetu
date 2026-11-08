@@ -72,7 +72,8 @@ def submit():
                 from utils.storage import upload_complaint_image
                 image_path = upload_complaint_image(file)
             except Exception as upload_err:
-                current_app.logger.error("Complaint image upload failed [%s]", type(upload_err).__name__)
+                from utils.storage import sanitize_error
+                current_app.logger.error("Complaint image upload failed: %s", sanitize_error(upload_err))
                 flash('Image upload failed. Your complaint was not submitted. Please try again.', 'danger')
                 return render_template('citizen/submit.html', issue_types=issue_types, count_map=count_map, form_data=form_data)
 
@@ -98,13 +99,14 @@ def submit():
             db.session.commit()
         except Exception as db_err:
             db.session.rollback()
-            current_app.logger.error("Database commit error [%s]", type(db_err).__name__)
+            from utils.storage import sanitize_error
+            current_app.logger.error("Database commit error: %s", sanitize_error(db_err))
             if image_path:
                 try:
                     from utils.storage import delete_complaint_image
                     delete_complaint_image(image_path)
                 except Exception as cleanup_err:
-                    current_app.logger.warning("Failed to clean up image after database error [%s]", type(cleanup_err).__name__)
+                    current_app.logger.warning("Failed to clean up image after database error: %s", sanitize_error(cleanup_err))
             flash('An error occurred while saving your complaint. Please try again.', 'danger')
             return render_template('citizen/submit.html', issue_types=issue_types, count_map=count_map, form_data=form_data)
 

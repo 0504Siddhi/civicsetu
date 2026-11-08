@@ -12,6 +12,30 @@ from flask import current_app, url_for
 logger = logging.getLogger(__name__)
 
 
+def sanitize_error(err: Exception) -> str:
+    """
+    Produce a safe, diagnostic string for exceptions without leaking credentials,
+    API secrets, tokens, or raw connection strings.
+    """
+    msg = str(err)
+    if not msg:
+        return type(err).__name__
+
+    # Mask URLs with embedded credentials: scheme://<credentials>@<host>
+    msg = re.sub(r'([a-zA-Z0-9_+.-]+://)[^@\s]+@', r'\1***:***@', msg)
+    # Mask API key/secret/token patterns in key-value pairs or query strings
+    msg = re.sub(
+        r'(api_secret|api_key|secret|password|token)[\'\"]?\s*[:=]\s*[\'\"]?[^\'\"\s&,]+',
+        r'\1=***',
+        msg,
+        flags=re.IGNORECASE
+    )
+    # Mask raw hex or alphanumeric secrets (length 24+)
+    msg = re.sub(r'\b[0-9a-fA-F]{24,}\b', '***', msg)
+
+    return f"{type(err).__name__}: {msg}"
+
+
 class StorageError(Exception):
     """Base exception for storage errors."""
     pass
@@ -34,6 +58,12 @@ def is_production_env() -> bool:
 
 def is_cloudinary_configured() -> bool:
     """Check if Cloudinary environment variables are available."""
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+
     if os.environ.get('CLOUDINARY_URL'):
         return True
     return bool(
@@ -50,9 +80,17 @@ def _configure_cloudinary():
     except ImportError as e:
         raise StorageConfigurationError("Cloudinary package is not installed.") from e
 
-    # If CLOUDINARY_URL is set, Cloudinary automatically configures itself.
-    # Otherwise, configure using discrete variables if provided.
-    if not os.environ.get('CLOUDINARY_URL'):
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+
+    cld_url = os.environ.get('CLOUDINARY_URL')
+    if cld_url:
+        # Re-initialize Cloudinary configuration to load CLOUDINARY_URL from environment
+        cloudinary.reset_config()
+    else:
         cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME')
         api_key = os.environ.get('CLOUDINARY_API_KEY')
         api_secret = os.environ.get('CLOUDINARY_API_SECRET')
@@ -101,6 +139,7 @@ def upload_complaint_image(file_storage, upload_folder=None) -> str:
             result = cloudinary.uploader.upload(
                 file_storage,
                 public_id=public_id,
+                filename=file_storage.filename,
                 resource_type="image",
                 overwrite=False,
                 unique_filename=False
@@ -110,14 +149,15 @@ def upload_complaint_image(file_storage, upload_folder=None) -> str:
             return f"cloudinary:{returned_public_id}"
 
         except Exception as err:
-            logger.error("Cloudinary upload failed: %s", type(err).__name__)
+            safe_err = sanitize_error(err)
+            logger.error("Cloudinary upload failed: %s", safe_err)
             # In production, NEVER silently fall back to local disk
             if in_prod:
                 raise StorageUploadError(
-                    "Cloud storage upload failed. Please try again."
+                    f"Cloud storage upload failed ({safe_err}). Please try again."
                 ) from err
             # In development, fall through to local fallback with a log
-            logger.warning("Development mode: Falling back to local disk storage after Cloudinary error.")
+            logger.warning("Development mode: Falling back to local disk storage after Cloudinary error [%s].", safe_err)
 
     # 2. Production check: If Cloudinary is not configured in production, fail explicitly
     if in_prod:
@@ -157,7 +197,7 @@ def delete_complaint_image(image_ref: str) -> bool:
             logger.info("Deleted Cloudinary image %s: %s", public_id, res.get('result'))
             return res.get('result') == 'ok'
         except Exception as e:
-            logger.warning("Failed to delete Cloudinary image %s [%s]", public_id, type(e).__name__)
+            logger.warning("Failed to delete Cloudinary image %s [%s]", public_id, sanitize_error(e))
             return False
 
     elif image_ref.startswith('uploads/'):
@@ -210,7 +250,7 @@ def resolve_image_url(image_ref: str) -> str:
             )
             return cld_url
         except Exception as e:
-            logger.error("Failed to build Cloudinary URL for %s [%s]", public_id, type(e).__name__)
+            logger.error("Failed to build Cloudinary URL for %s [%s]", public_id, sanitize_error(e))
             return f"https://res.cloudinary.com/civicsetu/image/upload/{public_id}"
 
     if image_ref.startswith(('http://', 'https://')):

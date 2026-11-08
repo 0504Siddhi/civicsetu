@@ -54,6 +54,17 @@ def normalize_database_url(raw_url=None, is_production=False):
 def create_app():
     app = Flask(__name__)
 
+    # ── Automatically load .env if available ────────────────────
+    try:
+        from dotenv import load_dotenv
+        env_path = os.path.join(app.root_path, '.env')
+        if os.path.exists(env_path):
+            load_dotenv(env_path)
+        else:
+            load_dotenv()
+    except ImportError:
+        pass
+
     # ── Environment & Production Checks ────────────────────────
     is_production = os.environ.get('FLASK_ENV') == 'production' or bool(os.environ.get('RENDER'))
 
